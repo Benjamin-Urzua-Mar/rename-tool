@@ -1,0 +1,9 @@
+{
+    "main": "app.js",
+    "scripts": {
+        "start": "electron ."
+    },
+    "dependencies": {
+        "electron": "^33.2.1"
+    }
+}

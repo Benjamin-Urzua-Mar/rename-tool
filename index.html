@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Image Renamer</title>
+        <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+        }
+
+        #image-container {
+            margin: 20px auto;
+        }
+
+        img {
+            max-width: 400px;
+            height: auto;
+            display: block;
+            margin: 10px auto;
+        }
+
+        input {
+            margin: 10px;
+            padding: 5px;
+        }
+    </style>
+    </head>
+
+    <body>
+        <h1>Image Renamer</h1>
+        <div id="image-container"> <span id="currentindex"></span> <img id="image"> <input
+                type="text" id="filename"
+                placeholder="Enter new name"> <button
+                id="save-button">Save</button>
+        </div>
+
+        <script>  
+            const path = require('path');
+      
+            const { ipcRenderer } = require('electron'); 
+            const folderPath = './my_arch/ima'; 
+            let images = []; 
+            let currentIndex = 0; 
+            async function loadImages() { 
+                images = await ipcRenderer.invoke('get-images', folderPath); 
+                if (images.length > 0) { 
+                    showImage(); 
+                } else { 
+                    document.getElementById('image-container').innerHTML = 'No images found.'; 
+                } 
+            } 
+            
+            function showImage() { 
+                const imageElement = document.getElementById('image'); 
+                const filenameInput = document.getElementById('filename'); 
+                imageElement.src = `${folderPath}/${images[currentIndex]}`; 
+                document.getElementById("currentindex").innerHTML = "imagen n°" + currentIndex
+                filenameInput.value = images[currentIndex].replace(".png", ""); 
+            } 
+            
+            document.getElementById('save-button').addEventListener('click', async () => { 
+                const oldName = images[currentIndex]; 
+                const newName = document.getElementById('filename').value + ".png";
+                if (newName) { 
+                    await ipcRenderer.invoke('rename-image', folderPath, oldName, newName); 
+                    images[currentIndex] = newName;
+                    nextImage(); } else { 
+                        alert('Please enter a valid name.'); 
+                    } 
+                }
+            ); 
+
+            document.getElementById('filename').addEventListener('keydown', async (event) => {
+                if (event.key === 'Enter') {
+                    const oldName = images[currentIndex];
+                    const newName = document.getElementById('filename').value + ".png";
+
+                    if (newName) {
+                        await ipcRenderer.invoke('rename-image', folderPath, oldName, newName);
+                        images[currentIndex] = newName;
+                        nextImage();
+                    } else {
+                        alert('Please enter a valid name.');
+                    }
+                }
+            });
+
+            async function validateAllFiles() {
+                const folderPath = './my_arch/ima'; // Cambia esta ruta a la carpeta que deseas verificar
+                const images = await ipcRenderer.invoke('get-images', folderPath);
+
+                for (const image of images) {
+                    const isValid = await ipcRenderer.invoke('validate-filename', path.parse(image).name);
+                    if (!isValid) {
+                        console.error(`Invalid filename: ${image}`);
+                    }
+                }
+            }
+
+            // Llamar a la función cuando se cargue la aplicación
+            document.addEventListener('DOMContentLoaded', () => {
+                validateAllFiles();
+            });
+            
+            function nextImage() { 
+                currentIndex = (currentIndex + 1) % images.length; 
+                showImage(); 
+            } 
+            
+            loadImages();     
+        </script>
+    </body>
+</html>
